@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 ALL_DAILY_MINTS_SQL = """
 SELECT
-    DATE_TRUNC('day', t.block_time) AS day,
+    DATE_TRUNC('day', t.block_time AT TIME ZONE 'UTC') AS day,
     COUNT(DISTINCT t."to") AS new_users
 FROM nft.transfers t
 JOIN bnb.transactions tx ON tx.hash = t.tx_hash
@@ -32,8 +32,8 @@ ORDER BY 1
 TODAY_WALLET_AGE_SQL = """
 WITH params AS (
   SELECT
-    TIMESTAMP '{target_date} 00:00:00' AT TIME ZONE '{timezone}' AS tw_day_start,
-    TIMESTAMP '{target_date} 00:00:00' AT TIME ZONE '{timezone}' + interval '1' day AS tw_day_end
+    TIMESTAMP '{target_date} 00:00:00' AS tw_day_start,
+    TIMESTAMP '{target_date} 00:00:00' + interval '1' day AS tw_day_end
 ),
 today_users AS (
   SELECT t."to" AS wallet, MIN(t.block_time) AS mint_time
@@ -113,7 +113,7 @@ class DataSyncer:
     """Syncs on-chain data from Dune Analytics to Firestore."""
 
     def __init__(self, api_key: str, token_address: str, minter_address: str,
-                 timezone: str = "Asia/Taipei"):
+                 timezone: str = "UTC"):
         self.client = DuneClient(api_key=api_key)
         self.token_hex = token_address[2:] if token_address.startswith("0x") else token_address
         self.minter_hex = minter_address[2:] if minter_address.startswith("0x") else minter_address

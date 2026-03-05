@@ -97,7 +97,7 @@
         const latest = summary.latest || {};
         const metrics = summary.metrics || {};
 
-        document.getElementById('heroTitle').textContent = 'Growth Dashboard';
+        document.getElementById('heroTitle').textContent = 'Twin Matrix';
 
         if (latest.cumulative_holders) {
             document.getElementById('heroHolders').textContent = fmt(latest.cumulative_holders);
@@ -113,10 +113,10 @@
         // Last update timestamp
         if (latest.synced_at) {
             const d = new Date(latest.synced_at);
-            const ts = d.toLocaleString('en-US', { timeZone: 'Asia/Taipei', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-            document.getElementById('heroLastUpdate').textContent = `Last synced: ${ts} (Asia/Taipei)`;
+            const ts = d.toLocaleString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('heroLastUpdate').textContent = `Last synced: ${ts} (UTC)`;
             const footerEl = document.getElementById('footerUpdate');
-            if (footerEl) footerEl.textContent = `Data as of ${ts} · Auto-refreshed every 4 hours`;
+            if (footerEl) footerEl.textContent = `Data as of ${ts} UTC · Auto-refreshed every 4 hours`;
         }
 
         // Hero entrance animation
@@ -124,7 +124,8 @@
         tl.to('.hero-logo', { opacity: 1, y: 0, duration: 0.6 })
             .to('.hero-label', { opacity: 1, y: 0, duration: 0.5 }, '-=0.2')
             .to('.hero-title', { opacity: 1, y: 0, duration: 0.9 }, '-=0.3')
-            .to('.hero-subtitle', { opacity: 1, y: 0, duration: 0.6, stagger: 0.15 }, '-=0.3')
+            .to('.hero-subtitle-tag', { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
+            .to('.hero-subtitle', { opacity: 1, y: 0, duration: 0.6, stagger: 0.15 }, '-=0.2')
             .to('.hero-subtitle-sm', { opacity: 1, y: 0, duration: 0.5 }, '-=0.2')
             .to('.hero-contract', { opacity: 1, duration: 0.4 }, '-=0.1')
             .to('.hero-stats', { opacity: 1, y: 0, duration: 0.6 }, '-=0.2')

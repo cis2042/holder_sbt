@@ -24,7 +24,7 @@ app = FastAPI(title="BSC Token Growth Dashboard", version="1.0.0")
 DUNE_API_KEY = os.getenv("DUNE_API_KEY", "")
 TOKEN_CONTRACT = os.getenv("TOKEN_CONTRACT_ADDRESS", "0xe3ec133e29addfbba26a412c38ed5de37195156f")
 MINTER_ADDRESS = os.getenv("MINTER_ADDRESS", "0x344659F3Ef3c2D2A0cdF071ea13Fa87867777777")
-TIMEZONE = os.getenv("TIMEZONE", "Asia/Taipei")
+TIMEZONE = os.getenv("TIMEZONE", "UTC")
 SYNC_SECRET = os.getenv("SYNC_SECRET", "")  # Protect sync endpoints
 
 # ── Static files ─────────────────────────────────────────────
