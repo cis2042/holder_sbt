@@ -91,6 +91,19 @@
         </div>
     </div>
 
+    <!-- ═══════════ WALLET LOOKUP ═══════════ -->
+    <div class="wallet-lookup" id="walletLookup">
+        <div class="wallet-lookup-inner">
+            <div class="wallet-lookup-label">🔍 Check Your SBT</div>
+            <div class="wallet-lookup-row">
+                <input type="text" id="walletInput" class="wallet-input"
+                    placeholder="Enter your BNB Chain wallet address (0x...)" spellcheck="false" autocomplete="off">
+                <button class="btn btn-lookup" id="walletLookupBtn" onclick="lookupWallet()">Look Up</button>
+            </div>
+            <div class="wallet-result" id="walletResult"></div>
+        </div>
+    </div>
+
     <!-- ═══════════ SCENE 1: GROWTH TIMELINE ═══════════ -->
     <section class="scene" id="scene-timeline">
         <div class="scene-inner">

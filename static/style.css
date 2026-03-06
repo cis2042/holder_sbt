@@ -940,6 +940,136 @@ details.formula-sql summary:hover {
     font-size: 0.8rem;
 }
 
+/* ── Wallet Lookup ──────────────────────────────────────── */
+.wallet-lookup {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.2rem 1.5rem;
+}
+
+.wallet-lookup-inner {
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.wallet-lookup-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.6rem;
+}
+
+.wallet-lookup-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.wallet-input {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card-solid);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+}
+
+.wallet-input:focus {
+    border-color: var(--accent);
+}
+
+.wallet-input::placeholder {
+    color: var(--text-faint);
+    font-size: 0.75rem;
+}
+
+.btn-lookup {
+    padding: 0.55rem 1.2rem;
+    background: var(--accent);
+    color: #FFF;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-lookup:hover {
+    background: var(--accent-dark);
+}
+
+.btn-lookup:active {
+    transform: scale(0.97);
+}
+
+.btn-lookup:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.wallet-result {
+    margin-top: 0.7rem;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    min-height: 0;
+    transition: min-height 0.3s;
+}
+
+.wallet-result a {
+    color: var(--accent);
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+.wallet-result .wallet-found {
+    background: var(--green-bg);
+    border: 1px solid rgba(91, 140, 90, 0.2);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    color: var(--green);
+}
+
+.wallet-result .wallet-found .token-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.wallet-result .wallet-not-found {
+    background: var(--amber-bg);
+    border: 1px solid rgba(184, 134, 11, 0.2);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    color: var(--amber);
+}
+
+.wallet-result .wallet-error {
+    color: #c0392b;
+    font-size: 0.78rem;
+}
+
+@media (max-width: 600px) {
+    .wallet-lookup-row {
+        flex-direction: column;
+    }
+
+    .wallet-input {
+        font-size: 0.72rem;
+    }
+}
+
 /* ── Controls Row ────────────────────────────────────────── */
 .controls-row {
     display: flex;

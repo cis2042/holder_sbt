@@ -3,6 +3,86 @@
    Combines on-chain + GA4 analytics
    ═════════════════════════════════════════════════════════ */
 
+const SBT_CONTRACT = '0xe3ec133e29addfbba26a412c38ed5de37195156f';
+const BSC_RPC = 'https://bsc-dataseed.binance.org/';
+
+async function lookupWallet() {
+    const input = document.getElementById('walletInput');
+    const result = document.getElementById('walletResult');
+    const btn = document.getElementById('walletLookupBtn');
+    const addr = input.value.trim().toLowerCase();
+
+    if (!/^0x[a-f0-9]{40}$/i.test(addr)) {
+        result.innerHTML = '<div class="wallet-error">⚠ Please enter a valid BNB Chain address (0x...)</div>';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    result.innerHTML = '<div style="color:var(--text-muted)">🔄 Querying BNB Chain...</div>';
+
+    try {
+        // ERC-721 balanceOf(address) — function selector 0x70a08231
+        const balanceData = '0x70a08231' + addr.slice(2).padStart(64, '0');
+        const balanceRes = await fetch(BSC_RPC, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0', id: 1, method: 'eth_call',
+                params: [{ to: SBT_CONTRACT, data: balanceData }, 'latest']
+            })
+        });
+        const balanceJson = await balanceRes.json();
+        const balance = parseInt(balanceJson.result, 16);
+
+        if (balance > 0) {
+            // ERC-721 tokenOfOwnerByIndex(address, 0) — selector 0x2f745c59
+            const tokenData = '0x2f745c59' + addr.slice(2).padStart(64, '0') + '0'.padStart(64, '0');
+            const tokenRes = await fetch(BSC_RPC, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0', id: 2, method: 'eth_call',
+                    params: [{ to: SBT_CONTRACT, data: tokenData }, 'latest']
+                })
+            });
+            const tokenJson = await tokenRes.json();
+            const tokenId = parseInt(tokenJson.result, 16);
+
+            const bscscanToken = `https://bscscan.com/nft/${SBT_CONTRACT}/${tokenId}`;
+            const bscscanContract = `https://bscscan.com/token/${SBT_CONTRACT}`;
+
+            result.innerHTML = `
+                <div class="wallet-found">
+                    ✅ <strong>SBT Found!</strong><br>
+                    Token ID: <span class="token-id">#${tokenId.toLocaleString()}</span><br>
+                    <a href="${bscscanToken}" target="_blank" rel="noopener">View Token on BscScan ↗</a>
+                    &nbsp;·&nbsp;
+                    <a href="${bscscanContract}" target="_blank" rel="noopener">View Contract ↗</a>
+                </div>`;
+        } else {
+            const bscscanContract = `https://bscscan.com/token/${SBT_CONTRACT}`;
+            result.innerHTML = `
+                <div class="wallet-not-found">
+                    ⚠ No Twin3 SBT found for this wallet.<br>
+                    <small>This address does not hold a Twin3 Soulbound Token.</small><br>
+                    <a href="${bscscanContract}" target="_blank" rel="noopener">View Contract on BscScan ↗</a>
+                </div>`;
+        }
+    } catch (err) {
+        result.innerHTML = `<div class="wallet-error">❌ Network error: ${err.message}. Please try again.</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Look Up';
+    }
+}
+
+// Allow Enter key to trigger lookup
+document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('walletInput');
+    if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') lookupWallet(); });
+});
+
 (function () {
     'use strict';
     gsap.registerPlugin(ScrollTrigger);
