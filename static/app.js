@@ -535,10 +535,12 @@
 
         const svg = container.append('svg')
             .attr('width', w).attr('height', h)
-            .style('background', '#1a1e2a');
+            .style('background', '#F5F0E8');
 
         const maxUsers = d3.max(countries, d => d.activeUsers) || 1;
-        const colorScale = d3.scaleSequentialLog([1, maxUsers], d3.interpolateYlOrRd);
+        // Cream-themed gradient: light cream → warm terracotta
+        const colorScale = d3.scaleSequentialLog([1, maxUsers],
+            t => d3.interpolateRgb('#F0E8DC', '#8B3A1A')(t));
 
         // Create projection
         const projection = d3.geoNaturalEarth1()
@@ -551,7 +553,7 @@
             .datum(d3.geoGraticule()())
             .attr('d', path)
             .attr('fill', 'none')
-            .attr('stroke', '#2a2e3a')
+            .attr('stroke', '#E8E0D4')
             .attr('stroke-width', 0.4);
 
         // Load world TopoJSON
@@ -566,9 +568,9 @@
                 .attr('fill', d => {
                     const props = d.properties;
                     const match = countryLookup[props.name];
-                    return match ? colorScale(match.activeUsers) : '#252a3a';
+                    return match ? colorScale(match.activeUsers) : '#EDE6DA';
                 })
-                .attr('stroke', '#3a3e4a')
+                .attr('stroke', '#D4CABC')
                 .attr('stroke-width', 0.4)
                 .style('cursor', d => countryLookup[d.properties.name] ? 'pointer' : 'default')
                 .on('mousemove', (ev, d) => {
@@ -584,7 +586,7 @@
                 .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
                 .attr('d', path)
                 .attr('fill', 'none')
-                .attr('stroke', '#3a3e4a')
+                .attr('stroke', '#D4CABC')
                 .attr('stroke-width', 0.3);
         });
 
@@ -615,7 +617,7 @@
             .style('flex-wrap', 'wrap').style('padding', '0.8rem 0.5rem 0').style('justify-content', 'center');
         top5.forEach((c, i) => {
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-            listDiv.append('div').style('font-size', '0.8rem').style('color', '#e8e0d4')
+            listDiv.append('div').style('font-size', '0.8rem').style('color', '#5A5550')
                 .html(`<span style="margin-right:4px">${medal}</span><strong>${c.country}</strong> ${fmt(c.activeUsers)}`);
         });
     }
