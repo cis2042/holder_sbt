@@ -382,14 +382,22 @@
 
     function updateGAMetrics(data, summary) {
         const el = document.getElementById('gaMetrics');
-        if (!data.length) return;
-        const last = data[data.length - 1];
-        const totals = summary?.totals || {};
+        if (!summary?.totals) return;
+        const t = summary.totals;
+
+        // Format session duration as Xm Ys
+        const durSec = t.avg_session_duration || 0;
+        const durMin = Math.floor(durSec / 60);
+        const durS = Math.round(durSec % 60);
+        const durStr = durMin > 0 ? `${durMin}m ${durS}s` : `${durS}s`;
+
         el.innerHTML = [
-            metricCard(fmt(last.activeUsers), 'Users (Latest)', ''),
-            metricCard(fmt(last.sessions), 'Sessions (Latest)', ''),
-            metricCard(fmt(totals.active_users || 0), 'Total Users', ''),
-            metricCard(fmt(totals.pageviews || 0), 'Total Pageviews', ''),
+            metricCard(fmt(t.active_users || 0), 'Total Users', ''),
+            metricCard(fmt(t.sessions || 0), 'Total Sessions', ''),
+            metricCard((t.pages_per_session || 0).toFixed(1), 'Pages / Session', ''),
+            metricCard((t.engagement_rate || 0).toFixed(1) + '%', 'Engagement Rate', ''),
+            metricCard(t.countries_count || '—', 'Countries Reached', ''),
+            metricCard(durStr, 'Avg. Session', ''),
         ].join('');
     }
 

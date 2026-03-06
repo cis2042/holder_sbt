@@ -248,6 +248,30 @@ class GASyncer:
         hourly = self.fetch_hourly_pattern(start_str, end_str)
         pages = self.fetch_top_pages(start_str, end_str)
 
+        # Compute engagement metrics from daily data
+        total_users = sum(
+            r.get("activeUsers", 0) for r in overview_by_date.values())
+        total_sessions = sum(
+            r.get("sessions", 0) for r in overview_by_date.values())
+        total_pageviews = sum(
+            r.get("screenPageViews", 0) for r in overview_by_date.values())
+        total_new_users = sum(
+            r.get("newUsers", 0) for r in overview_by_date.values())
+        total_engaged_sessions = sum(
+            r.get("engagedSessions", 0) for r in overview_by_date.values())
+        total_engagement_secs = sum(
+            r.get("userEngagementDuration", 0) for r in overview_by_date.values())
+
+        # Weighted average session duration (seconds)
+        avg_session_duration = (total_engagement_secs / total_sessions
+                                if total_sessions else 0)
+        # Engagement rate = engaged sessions / total sessions
+        engagement_rate = (total_engaged_sessions / total_sessions * 100
+                          if total_sessions else 0)
+        # Pages per session
+        pages_per_session = (total_pageviews / total_sessions
+                             if total_sessions else 0)
+
         # Store aggregated data in dedicated collection
         agg_data = {
             "start_date": start_str,
@@ -259,12 +283,17 @@ class GASyncer:
             "countries": countries,
             "hourly": hourly,
             "totals": {
-                "active_users": sum(
-                    r.get("activeUsers", 0) for r in overview_by_date.values()),
-                "sessions": sum(
-                    r.get("sessions", 0) for r in overview_by_date.values()),
-                "pageviews": sum(
-                    r.get("screenPageViews", 0) for r in overview_by_date.values()),
+                "active_users": total_users,
+                "sessions": total_sessions,
+                "pageviews": total_pageviews,
+                "new_users": total_new_users,
+                "engaged_sessions": total_engaged_sessions,
+                "engagement_rate": round(engagement_rate, 1),
+                "avg_session_duration": round(avg_session_duration, 1),
+                "pages_per_session": round(pages_per_session, 2),
+                "countries_count": len(countries),
+                "total_engagement_hours": round(total_engagement_secs / 3600, 1),
+                "days_tracked": len(overview_by_date),
             },
         }
         upsert_ga_aggregated("latest", agg_data)
