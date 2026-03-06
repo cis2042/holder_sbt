@@ -194,3 +194,24 @@ def get_ga_latest() -> dict | None:
         return doc.to_dict()
     return None
 
+
+# ── GA Aggregated Stats ──────────────────────────────────────
+
+GA_AGGREGATED = "ga_aggregated"
+
+
+def upsert_ga_aggregated(range_key: str, data: dict):
+    """Upsert aggregated GA analytics data for a date range."""
+    doc_ref = db.collection(GA_AGGREGATED).document(range_key)
+    doc_ref.set({
+        "range_key": range_key,
+        **data,
+        "synced_at": datetime.utcnow().isoformat() + "Z",
+    }, merge=True)
+
+
+def get_ga_aggregated(range_key: str = "latest") -> dict | None:
+    """Get aggregated GA data by range key."""
+    doc = db.collection(GA_AGGREGATED).document(range_key).get()
+    return doc.to_dict() if doc.exists else None
+

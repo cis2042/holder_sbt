@@ -239,32 +239,47 @@ async def api_ga_daily(from_date: str | None = None, to_date: str | None = None)
 @app.get("/api/ga/summary")
 async def api_ga_summary():
     """Get latest GA summary with traffic, devices, countries."""
-    from app.database import get_ga_latest, get_ga_daily
-    latest = get_ga_latest()
-    if not latest:
-        return {"status": "ok", "data": None}
+    from app.database import get_ga_aggregated, get_ga_daily
 
-    # Also compute aggregated totals
-    all_ga = get_ga_daily()
-    total_users = sum(d.get("overview", {}).get("activeUsers", 0) for d in all_ga)
-    total_sessions = sum(d.get("overview", {}).get("sessions", 0) for d in all_ga)
-    total_pageviews = sum(d.get("overview", {}).get("screenPageViews", 0) for d in all_ga)
+    agg = get_ga_aggregated("latest")
+    if not agg:
+        # Fallback: compute from daily docs
+        from app.database import get_ga_latest
+        latest = get_ga_latest()
+        if not latest:
+            return {"status": "ok", "data": None}
+        all_ga = get_ga_daily()
+        total_users = sum(d.get("overview", {}).get("activeUsers", 0) for d in all_ga)
+        total_sessions = sum(d.get("overview", {}).get("sessions", 0) for d in all_ga)
+        total_pageviews = sum(d.get("overview", {}).get("screenPageViews", 0) for d in all_ga)
+        return {
+            "status": "ok",
+            "data": {
+                "latest_date": latest.get("date"),
+                "traffic_sources": latest.get("traffic_sources", []),
+                "top_pages": latest.get("top_pages", []),
+                "devices": latest.get("devices", []),
+                "countries": latest.get("countries", []),
+                "hourly": latest.get("hourly", []),
+                "totals": {
+                    "active_users": total_users,
+                    "sessions": total_sessions,
+                    "pageviews": total_pageviews,
+                    "days_tracked": len(all_ga),
+                },
+            },
+        }
 
     return {
         "status": "ok",
         "data": {
-            "latest_date": latest.get("date"),
-            "traffic_sources": latest.get("traffic_sources", []),
-            "top_pages": latest.get("top_pages", []),
-            "devices": latest.get("devices", []),
-            "countries": latest.get("countries", []),
-            "hourly": latest.get("hourly", []),
-            "totals": {
-                "active_users": total_users,
-                "sessions": total_sessions,
-                "pageviews": total_pageviews,
-                "days_tracked": len(all_ga),
-            },
+            "latest_date": agg.get("end_date"),
+            "traffic_sources": agg.get("traffic_sources", []),
+            "top_pages": agg.get("top_pages", []),
+            "devices": agg.get("devices", []),
+            "countries": agg.get("countries", []),
+            "hourly": agg.get("hourly", []),
+            "totals": agg.get("totals", {}),
         },
     }
 

@@ -15,6 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
@@ -230,15 +231,20 @@
                 </div>
             </div>
 
-            <div style="display:flex;gap:1.2rem;flex-wrap:wrap;">
-                <div class="card" style="flex:1;min-width:280px;" id="countryCard">
-                    <h3>Geographic Reach</h3>
-                    <div class="chart-area" id="countryChart" style="height:280px;"></div>
-                    <div class="chart-caption">
-                        Global distribution of active users. Broad geographic spread
-                        demonstrates the project's international appeal.
-                    </div>
+            <div class="card" id="countryCard" style="width:100%;">
+                <h3>Geographic Reach</h3>
+                <div class="chart-area" id="countryChart" style="height:400px;">
+                    <div class="loading">Loading world map…</div>
                 </div>
+                <div id="countryLegend" style="display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem;"></div>
+                <div class="chart-caption">
+                    Global distribution of active users across 100+ countries.
+                    Broad geographic spread demonstrates the project's truly international appeal
+                    and organic growth across key emerging markets.
+                </div>
+            </div>
+
+            <div style="display:flex;gap:1.2rem;flex-wrap:wrap;">
                 <div class="card" style="flex:1;min-width:280px;" id="hourlyCard">
                     <h3>Hourly Engagement Pattern</h3>
                     <div class="chart-area" id="hourlyChart" style="height:280px;"></div>

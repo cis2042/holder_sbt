@@ -449,6 +449,22 @@ h3 {
     overflow: visible;
 }
 
+/* ── World Map ───────────────────────────────────────────── */
+#countryChart svg {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.country-path {
+    transition: opacity 0.15s ease;
+}
+
+.country-path:hover {
+    opacity: 0.8;
+    stroke: #e8e0d4;
+    stroke-width: 1.2;
+}
+
 /* ── Heatmap ─────────────────────────────────────────────── */
 .heatmap-wrapper {
     overflow-x: auto;

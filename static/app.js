@@ -513,30 +513,111 @@
         container.selectAll('*').remove();
         if (!countries.length) { container.append('div').attr('class', 'loading').text('No country data yet'); return; }
 
+        // Country name mapping (GA4 name → TopoJSON world-110m name)
+        const nameMap = {
+            'Türkiye': 'Turkey', 'United States': 'United States of America',
+            'South Korea': 'South Korea', 'Czech Republic': 'Czechia',
+            'Bosnia and Herzegovina': 'Bosnia and Herz.',
+            'Dominican Republic': 'Dominican Rep.', 'North Macedonia': 'Macedonia',
+            'Ivory Coast': "Côte d'Ivoire", 'Congo - Kinshasa': 'Dem. Rep. Congo',
+            'Congo - Brazzaville': 'Congo', 'Eswatini': 'eSwatini',
+            'Timor-Leste': 'Timor-Leste', 'Papua New Guinea': 'Papua New Guinea',
+        };
+        const countryLookup = {};
+        countries.forEach(c => {
+            const name = nameMap[c.country] || c.country;
+            countryLookup[name] = c;
+        });
+
         const rect = container.node().getBoundingClientRect();
-        const margin = { top: 10, right: 20, bottom: 5, left: 100 };
-        const w = rect.width - margin.left - margin.right;
-        const h = rect.height - margin.top - margin.bottom;
-        const top10 = countries.slice(0, 10);
+        const w = rect.width;
+        const h = rect.height || 400;
 
-        const svg = container.append('svg').attr('width', rect.width).attr('height', rect.height);
-        const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+        const svg = container.append('svg')
+            .attr('width', w).attr('height', h)
+            .style('background', '#1a1e2a');
 
-        const y = d3.scaleBand().domain(top10.map(d => d.country)).range([0, h]).padding(0.3);
-        const x = d3.scaleLinear().domain([0, d3.max(top10, d => d.activeUsers)]).range([0, w]);
+        const maxUsers = d3.max(countries, d => d.activeUsers) || 1;
+        const colorScale = d3.scaleSequentialLog([1, maxUsers], d3.interpolateYlOrRd);
 
-        g.selectAll('.bar').data(top10).join('rect')
-            .attr('y', d => y(d.country)).attr('width', d => x(d.activeUsers))
-            .attr('height', y.bandwidth()).attr('fill', ACCENT_LIGHT).attr('rx', 4)
-            .on('mousemove', (ev, d) => showTip(ev, `<strong>${d.country}</strong><br>Users: ${fmt(d.activeUsers)}<br>Sessions: ${fmt(d.sessions)}`))
-            .on('mouseleave', hideTip);
+        // Create projection
+        const projection = d3.geoNaturalEarth1()
+            .scale(w / 5.5)
+            .translate([w / 2, h / 2]);
+        const path = d3.geoPath(projection);
 
-        g.selectAll('.val').data(top10).join('text').attr('class', 'val')
-            .attr('x', d => x(d.activeUsers) + 6).attr('y', d => y(d.country) + y.bandwidth() / 2)
-            .attr('dy', '0.35em').style('font-size', '0.7rem').style('fill', ACCENT).style('font-weight', '600')
-            .text(d => fmt(d.activeUsers));
+        // Graticule
+        svg.append('path')
+            .datum(d3.geoGraticule()())
+            .attr('d', path)
+            .attr('fill', 'none')
+            .attr('stroke', '#2a2e3a')
+            .attr('stroke-width', 0.4);
 
-        g.append('g').call(d3.axisLeft(y)).selectAll('text').style('font-size', '0.72rem').style('fill', MUTED);
+        // Load world TopoJSON
+        d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world => {
+            const land = topojson.feature(world, world.objects.countries);
+
+            svg.selectAll('.country-path')
+                .data(land.features)
+                .join('path')
+                .attr('class', 'country-path')
+                .attr('d', path)
+                .attr('fill', d => {
+                    const props = d.properties;
+                    const match = countryLookup[props.name];
+                    return match ? colorScale(match.activeUsers) : '#252a3a';
+                })
+                .attr('stroke', '#3a3e4a')
+                .attr('stroke-width', 0.4)
+                .style('cursor', d => countryLookup[d.properties.name] ? 'pointer' : 'default')
+                .on('mousemove', (ev, d) => {
+                    const match = countryLookup[d.properties.name];
+                    if (match) {
+                        showTip(ev, `<strong>${match.country}</strong><br>Users: ${fmt(match.activeUsers)}<br>Sessions: ${fmt(match.sessions)}`);
+                    }
+                })
+                .on('mouseleave', hideTip);
+
+            // Borders
+            svg.append('path')
+                .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
+                .attr('d', path)
+                .attr('fill', 'none')
+                .attr('stroke', '#3a3e4a')
+                .attr('stroke-width', 0.3);
+        });
+
+        // Legend
+        const legend = d3.select('#countryLegend');
+        legend.selectAll('*').remove();
+        const legendW = Math.min(w - 40, 300);
+        const legendSvg = legend.append('svg').attr('width', legendW + 60).attr('height', 30);
+
+        const defs = legendSvg.append('defs');
+        const lGrad = defs.append('linearGradient').attr('id', 'mapLegendGrad');
+        [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+            lGrad.append('stop')
+                .attr('offset', `${t * 100}%`)
+                .attr('stop-color', colorScale(Math.pow(maxUsers, t)));
+        });
+        legendSvg.append('rect').attr('x', 30).attr('y', 2).attr('width', legendW).attr('height', 12).attr('rx', 4)
+            .attr('fill', 'url(#mapLegendGrad)');
+        legendSvg.append('text').attr('x', 30).attr('y', 26).text('1').style('font-size', '0.65rem').style('fill', MUTED);
+        legendSvg.append('text').attr('x', 30 + legendW).attr('y', 26).attr('text-anchor', 'end')
+            .text(fmt(maxUsers)).style('font-size', '0.65rem').style('fill', MUTED);
+        legendSvg.append('text').attr('x', 30 + legendW / 2).attr('y', 26).attr('text-anchor', 'middle')
+            .text('Active Users').style('font-size', '0.65rem').style('fill', MUTED);
+
+        // Top countries list below map
+        const top5 = countries.slice(0, 5);
+        const listDiv = container.append('div').style('display', 'flex').style('gap', '1rem')
+            .style('flex-wrap', 'wrap').style('padding', '0.8rem 0.5rem 0').style('justify-content', 'center');
+        top5.forEach((c, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+            listDiv.append('div').style('font-size', '0.8rem').style('color', '#e8e0d4')
+                .html(`<span style="margin-right:4px">${medal}</span><strong>${c.country}</strong> ${fmt(c.activeUsers)}`);
+        });
     }
 
     function buildHourlyChart(hourly) {

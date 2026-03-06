@@ -153,7 +153,7 @@ class GASyncer:
             order_by_metric="sessions",
         )
 
-    def fetch_countries(self, start_date: str, end_date: str) -> list[dict]:
+    def fetch_countries(self, start_date: str, end_date: str, limit: int = 250) -> list[dict]:
         """Fetch country breakdown."""
         logger.info(f"Fetching GA country breakdown {start_date} → {end_date}")
         return _run_report(
@@ -163,7 +163,7 @@ class GASyncer:
             start_date=start_date,
             end_date=end_date,
             order_by_metric="activeUsers",
-            limit=15,
+            limit=limit,
         )
 
     def fetch_hourly_pattern(self, start_date: str, end_date: str) -> list[dict]:
@@ -219,67 +219,61 @@ class GASyncer:
 
     def backfill(self, days: int = 90) -> dict:
         """Backfill GA data for the last N days."""
-        from app.database import upsert_ga_daily
+        from app.database import upsert_ga_daily, upsert_ga_aggregated
 
-        results = []
         end = datetime.utcnow().date()
         start = end - timedelta(days=days - 1)
+        start_str = start.strftime("%Y-%m-%d")
+        end_str = end.strftime("%Y-%m-%d")
 
         # Fetch daily overview for full range
-        overview_rows = self.fetch_daily_overview(
-            start.strftime("%Y-%m-%d"),
-            end.strftime("%Y-%m-%d"),
-        )
+        overview_rows = self.fetch_daily_overview(start_str, end_str)
 
         # Index by date
         overview_by_date = {}
         for row in overview_rows:
-            # GA date format: YYYYMMDD
             d = row.get("date", "")
             if len(d) == 8:
                 d = f"{d[:4]}-{d[4:6]}-{d[6:8]}"
             overview_by_date[d] = row
 
-        # Fetch aggregated traffic/devices/countries for full range
-        traffic = self.fetch_traffic_sources(
-            start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-        devices = self.fetch_devices(
-            start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-        countries = self.fetch_countries(
-            start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-
-        # Save daily overviews
+        # Save daily overviews (overview only, no breakdowns)
         for date_str, metrics in overview_by_date.items():
-            data = {
-                "overview": metrics,
-                "traffic_sources": [],  # Only store aggregated on latest day
-                "top_pages": [],
-                "devices": [],
-                "countries": [],
-                "hourly": [],
-            }
-            upsert_ga_daily(date_str, data)
+            upsert_ga_daily(date_str, {"overview": metrics})
 
-        # Store aggregated breakdowns on the latest day
-        latest_date = end.strftime("%Y-%m-%d")
-        if latest_date in overview_by_date:
-            hourly = self.fetch_hourly_pattern(
-                start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-            pages = self.fetch_top_pages(
-                start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-            agg_data = {
-                "overview": overview_by_date[latest_date],
-                "traffic_sources": traffic,
-                "top_pages": pages,
-                "devices": devices,
-                "countries": countries,
-                "hourly": hourly,
-            }
-            upsert_ga_daily(latest_date, agg_data)
+        # Fetch full-range aggregated breakdowns
+        traffic = self.fetch_traffic_sources(start_str, end_str)
+        devices = self.fetch_devices(start_str, end_str)
+        countries = self.fetch_countries(start_str, end_str, limit=250)
+        hourly = self.fetch_hourly_pattern(start_str, end_str)
+        pages = self.fetch_top_pages(start_str, end_str)
 
-        logger.info(f"GA backfill complete: {len(overview_by_date)} days")
+        # Store aggregated data in dedicated collection
+        agg_data = {
+            "start_date": start_str,
+            "end_date": end_str,
+            "days": len(overview_by_date),
+            "traffic_sources": traffic,
+            "top_pages": pages,
+            "devices": devices,
+            "countries": countries,
+            "hourly": hourly,
+            "totals": {
+                "active_users": sum(
+                    r.get("activeUsers", 0) for r in overview_by_date.values()),
+                "sessions": sum(
+                    r.get("sessions", 0) for r in overview_by_date.values()),
+                "pageviews": sum(
+                    r.get("screenPageViews", 0) for r in overview_by_date.values()),
+            },
+        }
+        upsert_ga_aggregated("latest", agg_data)
+
+        logger.info(f"GA backfill complete: {len(overview_by_date)} days, "
+                     f"{len(countries)} countries")
         return {
             "status": "ok",
             "days": len(overview_by_date),
+            "countries": len(countries),
             "range": f"{start} → {end}",
         }
