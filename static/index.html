@@ -10,7 +10,7 @@
     <link rel="icon" href="/static/twin3-logo.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
@@ -20,6 +20,12 @@
 </head>
 
 <body>
+
+    <!-- Hex Matrix Background Canvas -->
+    <canvas id="hexCanvas"></canvas>
+
+    <!-- Dark Mode Toggle -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
 
     <div class="progress-bar" id="progressBar"></div>
     <div class="tooltip" id="tooltip"></div>
@@ -452,6 +458,69 @@
         </p>
         <p class="footer-update" id="footerUpdate"></p>
     </footer>
+
+    <!-- Hex Matrix Canvas Script -->
+    <script>
+    (function() {
+        const canvas = document.getElementById('hexCanvas');
+        const ctx = canvas.getContext('2d');
+        let cols, rows, grid;
+        const CELL = 28;
+        const CHARS = '0123456789abcdef';
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            cols = Math.ceil(canvas.width / CELL) + 1;
+            rows = Math.ceil(canvas.height / CELL) + 1;
+            grid = Array.from({ length: cols * rows }, () => ({
+                char: CHARS[Math.floor(Math.random() * 16)],
+                opacity: Math.random() * 0.08 + 0.03,
+                next: Math.random() * 4000 + 1000,
+            }));
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        let lastTime = 0;
+        function draw(time) {
+            const dt = time - lastTime; lastTime = time;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const dark = document.body.classList.contains('dark');
+            const baseR = dark ? 160 : 45, baseG = dark ? 232 : 74, baseB = dark ? 111 : 53;
+
+            ctx.font = '10px "JetBrains Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < grid.length; i++) {
+                const g = grid[i];
+                g.next -= dt;
+                if (g.next <= 0) {
+                    g.char = CHARS[Math.floor(Math.random() * 16)];
+                    g.opacity = Math.random() * (dark ? 0.18 : 0.1) + (dark ? 0.06 : 0.03);
+                    g.next = Math.random() * 4000 + 1000;
+                }
+                const col = i % cols, row = Math.floor(i / cols);
+                ctx.fillStyle = `rgba(${baseR},${baseG},${baseB},${g.opacity})`;
+                ctx.fillText(g.char, col * CELL + CELL / 2, row * CELL + CELL / 2);
+            }
+            requestAnimationFrame(draw);
+        }
+        requestAnimationFrame(draw);
+
+        // Dark mode toggle
+        const toggle = document.getElementById('themeToggle');
+        const saved = localStorage.getItem('tw3-theme');
+        if (saved === 'dark') { document.body.classList.add('dark'); toggle.textContent = '☀️'; }
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            const isDark = document.body.classList.contains('dark');
+            toggle.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('tw3-theme', isDark ? 'dark' : 'light');
+        });
+    })();
+    </script>
 
     <script src="/static/app.js"></script>
 </body>

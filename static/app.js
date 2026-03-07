@@ -90,14 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const fmt = n => n != null ? n.toLocaleString('en-US') : '—';
     const pct = n => n != null ? n.toFixed(1) + '%' : '—';
     const API = path => fetch(path).then(r => r.json());
-    const ACCENT = '#C0785C';
-    const ACCENT_LIGHT = '#D4A574';
+    const ACCENT = '#4a7c59';
+    const ACCENT_LIGHT = '#8dae9a';
+    const ACCENT_DARK = '#2d4a35';
     const GREEN = '#5B8C5A';
-    const CHART_BG = '#F5F0E8';
-    const MUTED = '#A39E94';
+    const CHART_BG = '#f0efe8';
+    const MUTED = '#7a7a7a';
     const INFO = '#7B8FA8';
     const AMBER = '#B8860B';
-    const CHART_COLORS = [ACCENT, GREEN, INFO, AMBER, '#8B6F47', '#6A8E7F', '#B07D62', '#9B8EA4'];
+    const CHART_COLORS = [ACCENT, '#6fdb8f', INFO, AMBER, '#8dae9a', '#6A8E7F', '#3a6b45', '#9B8EA4'];
 
     let allDailyData = [];
     let allGaData = [];
@@ -639,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxUsers = d3.max(countries, d => d.activeUsers) || 1;
         // Cream-themed gradient: light cream → warm terracotta
         const colorScale = d3.scaleSequentialLog([1, maxUsers],
-            t => d3.interpolateRgb('#F0E8DC', '#8B3A1A')(t));
+            t => d3.interpolateRgb('#F2EDE6', '#4a7c59')(t));
 
         // Create projection
         const projection = d3.geoNaturalEarth1()
@@ -652,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .datum(d3.geoGraticule()())
             .attr('d', path)
             .attr('fill', 'none')
-            .attr('stroke', '#E8E0D4')
+            .attr('stroke', '#c5d9cb')
             .attr('stroke-width', 0.4);
 
         // Load world TopoJSON
@@ -669,7 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const match = countryLookup[props.name];
                     return match ? colorScale(match.activeUsers) : '#EDE6DA';
                 })
-                .attr('stroke', '#D4CABC')
+                .attr('stroke', '#c5d9cb')
                 .attr('stroke-width', 0.4)
                 .style('cursor', d => countryLookup[d.properties.name] ? 'pointer' : 'default')
                 .on('mousemove', (ev, d) => {
@@ -685,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
                 .attr('d', path)
                 .attr('fill', 'none')
-                .attr('stroke', '#D4CABC')
+                .attr('stroke', '#c5d9cb')
                 .attr('stroke-width', 0.3);
         });
 
@@ -748,12 +749,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const share = (c.activeUsers / pct * 100).toFixed(1);
             const item = listDiv.append('div')
                 .style('display', 'flex').style('align-items', 'center').style('gap', '0.3rem')
-                .style('font-size', '0.78rem').style('color', '#5A5550')
+                .style('font-size', '0.78rem').style('color', '#4a4a4a')
                 .style('cursor', 'pointer').style('padding', '0.25rem 0.5rem')
                 .style('border-radius', '6px').style('transition', 'background 0.2s')
                 .attr('title', `Click to highlight ${c.country} on the map`);
 
-            item.on('mouseenter', function () { d3.select(this).style('background', 'rgba(192,120,92,0.12)'); })
+            item.on('mouseenter', function () { d3.select(this).style('background', 'rgba(74,124,89,0.08)'); })
                 .on('mouseleave', function () { d3.select(this).style('background', 'transparent'); });
 
             item.html(`<span style="font-size:1.1rem">${flag}</span> ` +
@@ -768,10 +769,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     .transition().duration(300)
                     .attr('fill', d => {
                         const match = countryLookup[d.properties.name];
-                        if (d.properties.name === topoName) return '#C0785C';
+                        if (d.properties.name === topoName) return '#4a7c59';
                         return match ? colorScale(match.activeUsers) : '#EDE6DA';
                     })
-                    .attr('stroke', d => d.properties.name === topoName ? '#8B3A1A' : '#D4CABC')
+                    .attr('stroke', d => d.properties.name === topoName ? '#2d4a35' : '#c5d9cb')
                     .attr('stroke-width', d => d.properties.name === topoName ? 2 : 0.4);
 
                 // Reset after 2s
@@ -782,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const match = countryLookup[d.properties.name];
                             return match ? colorScale(match.activeUsers) : '#EDE6DA';
                         })
-                        .attr('stroke', '#D4CABC')
+                        .attr('stroke', '#c5d9cb')
                         .attr('stroke-width', 0.4);
                 }, 2500);
             });
@@ -839,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         [0.25, 0.5, 0.75, 1].forEach(t => {
             const xp = x(secondMax * t);
             g.append('line').attr('x1', xp).attr('x2', xp).attr('y1', 0).attr('y2', projects.length * rowH)
-                .attr('stroke', '#E8E0D4').attr('stroke-dasharray', '3,3');
+                .attr('stroke', '#c5d9cb').attr('stroke-dasharray', '3,3');
         });
 
         // Bars — cap any bar exceeding chart width (Worldcoin)
@@ -851,9 +852,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr('width', d => barW(d))
             .attr('height', y.bandwidth())
             .attr('rx', 4)
-            .attr('fill', d => d.highlight ? '#C0785C' : '#D4CABC')
+            .attr('fill', d => d.highlight ? '#4a7c59' : '#c5d9cb')
             .attr('opacity', d => d.highlight ? 1 : 0.6)
-            .attr('stroke', d => d.highlight ? '#8B3A1A' : 'none')
+            .attr('stroke', d => d.highlight ? '#2d4a35' : 'none')
             .attr('stroke-width', d => d.highlight ? 2 : 0)
             .on('mousemove', (ev, d) => {
                 const rank = projects.indexOf(d) + 1;
@@ -877,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 g.append('path').attr('d', zigPath)
                     .attr('fill', 'none').attr('stroke', '#FFF').attr('stroke-width', 2.5);
                 g.append('path').attr('d', zigPath)
-                    .attr('fill', 'none').attr('stroke', '#B0A898').attr('stroke-width', 1.2);
+                    .attr('fill', 'none').attr('stroke', '#8dae9a').attr('stroke-width', 1.2);
             }
         });
 
@@ -891,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .style('font-weight', d => d.highlight ? '700' : '500')
             .style('fill', d => {
                 if (x(d.holders) > w) return '#FFF';
-                return d.highlight ? '#8B3A1A' : MUTED;
+                return d.highlight ? '#2d4a35' : MUTED;
             })
             .text(d => {
                 if (d.holders >= 1000000) return (d.holders / 1000000).toFixed(1) + 'M';
@@ -909,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const yPos = y(d.name) + y.bandwidth() / 2;
             // Rank number
             g.append('text').attr('x', -margin.left + 6).attr('y', yPos).attr('dy', '0.35em')
-                .style('font-size', fontSizeSm).style('fill', d.highlight ? '#C0785C' : '#AAA')
+                .style('font-size', fontSizeSm).style('fill', d.highlight ? '#4a7c59' : '#AAA')
                 .style('font-weight', '600')
                 .text(`#${i + 1}`);
             // Project name (clickable link)
@@ -921,7 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .attr('text-anchor', 'end')
                 .style('font-size', fontSize)
                 .style('font-weight', d.highlight ? '700' : '400')
-                .style('fill', d.highlight ? '#8B3A1A' : '#5A5550')
+                .style('fill', d.highlight ? '#2d4a35' : '#4a4a4a')
                 .style('cursor', 'pointer')
                 .style('text-decoration', 'none')
                 .text(d.name)
@@ -940,7 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .attr('x', -margin.left).attr('y', ty - 2)
                 .attr('width', rect.width).attr('height', y.bandwidth() + 4)
                 .attr('rx', 6)
-                .attr('fill', 'rgba(192,120,92,0.08)')
+                .attr('fill', 'rgba(74,124,89,0.06)')
                 .attr('stroke', 'none')
                 .lower(); // send behind bars
         }
@@ -1128,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const v = lookup[age + '|' + tx] || 0;
                     const display = showPct ? (total > 0 ? (v / total * 100).toFixed(1) + '%' : '·') : (v > 0 ? fmt(v) : '·');
                     const intensity = v / maxVal;
-                    const bg = v > 0 ? `rgba(192,120,92,${0.1 + intensity * 0.6})` : 'transparent';
+                    const bg = v > 0 ? `rgba(74,124,89,${0.1 + intensity * 0.6})` : 'transparent';
                     return `<td style="background:${bg}">${display}</td>`;
                 }).join('');
                 return `<tr><td class="age-label">${age}</td>${cells}</tr>`;
