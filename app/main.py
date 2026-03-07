@@ -20,6 +20,15 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 
 app = FastAPI(title="BSC Token Growth Dashboard", version="1.0.0")
 
+# ── CORS (allow widget embedding from any origin) ────────────
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
 # ── Config ───────────────────────────────────────────────────
 DUNE_API_KEY = os.getenv("DUNE_API_KEY", "")
 TOKEN_CONTRACT = os.getenv("TOKEN_CONTRACT_ADDRESS", "0xe3ec133e29addfbba26a412c38ed5de37195156f")

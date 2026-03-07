@@ -1,0 +1,346 @@
+<!--
+  twin3 SBT — Embeddable Widget
+  ====================================
+  Drop this <div> + <script> into any page to display:
+    1. Live On-Chain Holders counter
+    2. Interactive world map showing user distribution
+
+  API source: https://twin3-holder-sbt-189088516194.asia-east1.run.app
+  Dependencies: D3.js v7 + TopoJSON (loaded automatically)
+
+  Usage:
+    Copy everything below into your page's HTML where you want the widget to appear.
+-->
+
+<!-- ═══════════ twin3 SBT Widget ═══════════ -->
+<div id="twin3-widget">
+  <style>
+    #twin3-widget {
+      --tw3-bg: #FAF6F0;
+      --tw3-text: #3A3632;
+      --tw3-muted: #8B8580;
+      --tw3-accent: #C0785C;
+      --tw3-card-bg: #FFFFFF;
+      --tw3-border: #E8E0D4;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--tw3-text);
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Holder Counter ── */
+    .tw3-holder-card {
+      background: var(--tw3-card-bg);
+      border: 1px solid var(--tw3-border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .tw3-holder-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--tw3-muted);
+      margin-bottom: 0.3rem;
+    }
+    .tw3-holder-value {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--tw3-accent);
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+    .tw3-holder-sub {
+      font-size: 0.8rem;
+      color: var(--tw3-muted);
+      margin-top: 0.4rem;
+    }
+    .tw3-holder-sub a {
+      color: var(--tw3-accent);
+      text-decoration: none;
+    }
+    .tw3-holder-sub a:hover { text-decoration: underline; }
+
+    /* ── Map Card ── */
+    .tw3-map-card {
+      background: var(--tw3-card-bg);
+      border: 1px solid var(--tw3-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .tw3-map-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--tw3-muted);
+      margin-bottom: 1rem;
+    }
+    .tw3-map-area { width: 100%; }
+    .tw3-map-area svg { width: 100%; height: auto; display: block; }
+
+    /* ── Country Legend ── */
+    .tw3-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem 1.5rem;
+      margin-top: 1rem;
+      font-size: 0.78rem;
+    }
+    .tw3-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .tw3-legend-flag { font-size: 1rem; }
+    .tw3-legend-name { color: var(--tw3-text); }
+    .tw3-legend-val { font-weight: 700; color: var(--tw3-accent); }
+    .tw3-legend-pct { color: var(--tw3-muted); font-size: 0.7rem; }
+
+    /* ── Gradient Legend ── */
+    .tw3-gradient-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.8rem;
+      font-size: 0.7rem;
+      color: var(--tw3-muted);
+    }
+    .tw3-gradient-bar .bar {
+      width: 120px;
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    /* ── Tooltip ── */
+    .tw3-tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(50,44,38,0.92);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      line-height: 1.4;
+      z-index: 9999;
+      display: none;
+      white-space: nowrap;
+    }
+
+    /* ── Footer link ── */
+    .tw3-powered {
+      text-align: right;
+      margin-top: 0.6rem;
+      font-size: 0.65rem;
+      color: var(--tw3-muted);
+    }
+    .tw3-powered a { color: var(--tw3-accent); text-decoration: none; }
+    .tw3-powered a:hover { text-decoration: underline; }
+  </style>
+
+  <!-- Holder Counter -->
+  <div class="tw3-holder-card">
+    <div class="tw3-holder-label">On-Chain Holders</div>
+    <div class="tw3-holder-value" id="tw3HolderValue">—</div>
+    <div class="tw3-holder-sub">
+      twin3 Soulbound Token on BNB Chain ·
+      <a href="https://bscscan.com/token/0xe3ec133e29addfbba26a412c38ed5de37195156f" target="_blank" rel="noopener">Verify on BscScan ↗</a>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="tw3-map-card">
+    <div class="tw3-map-title">Geographic Reach</div>
+    <div class="tw3-map-area" id="tw3MapArea"></div>
+    <div class="tw3-gradient-bar" id="tw3GradBar"></div>
+    <div class="tw3-legend" id="tw3Legend"></div>
+  </div>
+
+  <div class="tw3-powered">
+    Powered by <a href="https://twin3-holder-sbt-189088516194.asia-east1.run.app" target="_blank">twin3 Analytics</a>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="tw3-tooltip" id="tw3Tip"></div>
+</div>
+
+<!-- Dependencies -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  const API_BASE = 'https://twin3-holder-sbt-189088516194.asia-east1.run.app';
+  const TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+
+  // ── Country name → ISO mapping for flags ──
+  const FLAG_MAP = {
+    'Indonesia': '🇮🇩', 'Vietnam': '🇻🇳', 'Nigeria': '🇳🇬', 'United States': '🇺🇸',
+    'India': '🇮🇳', 'Bangladesh': '🇧🇩', 'Taiwan': '🇹🇼', 'Philippines': '🇵🇭',
+    'Japan': '🇯🇵', 'Pakistan': '🇵🇰', 'Brazil': '🇧🇷', 'Turkey': '🇹🇷', 'Türkiye': '🇹🇷',
+    'Germany': '🇩🇪', 'South Korea': '🇰🇷', 'United Kingdom': '🇬🇧', 'France': '🇫🇷',
+    'Russia': '🇷🇺', 'Mexico': '🇲🇽', 'Thailand': '🇹🇭', 'Egypt': '🇪🇬',
+    'Canada': '🇨🇦', 'Spain': '🇪🇸', 'Italy': '🇮🇹', 'China': '🇨🇳',
+    'Australia': '🇦🇺', 'Argentina': '🇦🇷', 'Colombia': '🇨🇴', 'Malaysia': '🇲🇾',
+    'Kenya': '🇰🇪', 'South Africa': '🇿🇦', 'Peru': '🇵🇪', 'Chile': '🇨🇱',
+    'Ukraine': '🇺🇦', 'Poland': '🇵🇱', 'Netherlands': '🇳🇱', 'Morocco': '🇲🇦',
+    'Ghana': '🇬🇭', 'Cameroon': '🇨🇲', 'Tanzania': '🇹🇿', 'Ethiopia': '🇪🇹',
+    'Singapore': '🇸🇬', 'Hong Kong': '🇭🇰', 'Myanmar (Burma)': '🇲🇲',
+    'Sri Lanka': '🇱🇰', 'Nepal': '🇳🇵', 'Cambodia': '🇰🇭', 'Algeria': '🇩🇿',
+    'Iraq': '🇮🇶', 'Saudi Arabia': '🇸🇦', 'Romania': '🇷🇴', 'Czechia': '🇨🇿',
+  };
+
+  // GA country name → Natural Earth / TopoJSON name mapping
+  const COUNTRY_ALIAS = {
+    'United States': 'United States of America',
+    'Russia': 'Russia',
+    'South Korea': 'South Korea',
+    'Vietnam': 'Vietnam',
+    'Türkiye': 'Turkey',
+    'Myanmar (Burma)': 'Myanmar',
+    'Czechia': 'Czech Republic',
+    'Taiwan': 'Taiwan',
+  };
+
+  const fmt = n => n != null ? n.toLocaleString('en-US') : '—';
+
+  const tip = document.getElementById('tw3Tip');
+  function showTip(ev, html) {
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+    tip.style.left = (ev.clientX + 12) + 'px';
+    tip.style.top = (ev.clientY - 30) + 'px';
+  }
+  function hideTip() { tip.style.display = 'none'; }
+
+  // ── Fetch & Render ──
+  async function init() {
+    // Fetch data in parallel
+    const [summaryRes, gaRes, topoRes] = await Promise.allSettled([
+      fetch(`${API_BASE}/api/stats/summary`).then(r => r.json()),
+      fetch(`${API_BASE}/api/ga/summary`).then(r => r.json()),
+      fetch(TOPO_URL).then(r => r.json()),
+    ]);
+
+    // 1. Holder count
+    if (summaryRes.status === 'fulfilled' && summaryRes.value?.latest) {
+      const h = summaryRes.value.latest.cumulative_holders;
+      document.getElementById('tw3HolderValue').textContent = fmt(h);
+    }
+
+    // 2. World map
+    if (gaRes.status === 'fulfilled' && topoRes.status === 'fulfilled') {
+      const countries = gaRes.value?.data?.countries || [];
+      const topo = topoRes.value;
+      renderMap(countries, topo);
+    }
+  }
+
+  function renderMap(countries, topo) {
+    const container = document.getElementById('tw3MapArea');
+    const W = container.clientWidth || 800;
+    const H = W * 0.52;
+
+    // Build country lookup: geo name → activeUsers
+    const lookup = {};
+    let maxVal = 1;
+    countries.forEach(c => {
+      const name = c.country;
+      const val = c.activeUsers || 0;
+      lookup[name] = val;
+      const alias = COUNTRY_ALIAS[name];
+      if (alias) lookup[alias] = val;
+      if (val > maxVal) maxVal = val;
+    });
+
+    const color = d3.scaleSequential()
+      .domain([0, maxVal])
+      .interpolator(t => d3.interpolateRgb('#F2EDE6', '#8B3A1A')(Math.pow(t, 0.4)));
+
+    const geojson = topojson.feature(topo, topo.objects.countries);
+    const projection = d3.geoNaturalEarth1().fitSize([W, H], geojson);
+    const path = d3.geoPath(projection);
+
+    const svg = d3.select(container).append('svg')
+      .attr('viewBox', `0 0 ${W} ${H}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    // Sphere outline
+    svg.append('path')
+      .datum({ type: 'Sphere' })
+      .attr('d', path)
+      .attr('fill', '#FAF6F0')
+      .attr('stroke', '#E8E0D4')
+      .attr('stroke-width', 0.5);
+
+    // Graticules
+    svg.append('path')
+      .datum(d3.geoGraticule()())
+      .attr('d', path)
+      .attr('fill', 'none')
+      .attr('stroke', '#E8E0D4')
+      .attr('stroke-width', 0.3);
+
+    // Countries
+    svg.selectAll('.tw3-country')
+      .data(geojson.features)
+      .join('path')
+      .attr('class', 'tw3-country')
+      .attr('d', path)
+      .attr('fill', d => {
+        const name = d.properties.name;
+        return lookup[name] ? color(lookup[name]) : '#EDE7DD';
+      })
+      .attr('stroke', '#FFF')
+      .attr('stroke-width', 0.4)
+      .on('mousemove', (ev, d) => {
+        const name = d.properties.name;
+        const val = lookup[name];
+        if (val) {
+          showTip(ev, `<strong>${name}</strong><br>Active Users: ${fmt(val)}`);
+        } else {
+          showTip(ev, `<strong>${name}</strong><br>No data`);
+        }
+      })
+      .on('mouseleave', hideTip);
+
+    // Gradient legend bar
+    const gradBar = document.getElementById('tw3GradBar');
+    const canvas = document.createElement('canvas');
+    canvas.width = 120; canvas.height = 8;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 120, 0);
+    grad.addColorStop(0, '#F2EDE6');
+    grad.addColorStop(1, '#8B3A1A');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 120, 8);
+    gradBar.innerHTML = `<span>1</span><img src="${canvas.toDataURL()}" class="bar" style="width:120px;height:8px;border-radius:4px;"><span>${fmt(maxVal)}</span>`;
+
+    // Top 10 country legend
+    const total = countries.reduce((s, c) => s + (c.activeUsers || 0), 0);
+    const top10 = countries.slice(0, 10);
+    const legend = document.getElementById('tw3Legend');
+    legend.innerHTML = top10.map(c => {
+      const pct = total ? ((c.activeUsers / total) * 100).toFixed(1) : '0';
+      const flag = FLAG_MAP[c.country] || '🌐';
+      return `<span class="tw3-legend-item">
+        <span class="tw3-legend-flag">${flag}</span>
+        <span class="tw3-legend-name">${c.country}</span>
+        <span class="tw3-legend-val">${fmt(c.activeUsers)}</span>
+        <span class="tw3-legend-pct">${pct}%</span>
+      </span>`;
+    }).join('');
+  }
+
+  // Boot
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
