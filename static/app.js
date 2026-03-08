@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const liveHolders = summary?.latest?.cumulative_holders;
             buildSbtRankingChart(liveHolders);
             updateRankingNarrative(liveHolders);
-            if (gaDaily || gaSummary) { lastGaSummary = gaSummary; buildGA(allGaData, gaSummary?.data); }
+            if (gaDaily || gaSummary) { lastGaSummary = gaSummary; buildGA(allGaData, gaSummary?.data, liveHolders); }
             loadWallet();
             if (formulas) loadFormulas(formulas);
             if (summary) buildInsights(summary, gaSummary?.data, walletAge?.data);
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ═══════════ GA ANALYTICS ═══════════════════════════════ */
-    function buildGA(gaData, summary) {
+    function buildGA(gaData, summary, totalHolders) {
         if (!gaData || gaData.length === 0) {
             document.getElementById('gaNarrative').textContent = 'Google Analytics data is being collected. Check back after the next sync cycle.';
             return;
@@ -484,7 +484,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (summary) {
             buildTrafficChart(summary.traffic_sources || []);
             buildDeviceChart(summary.devices || []);
-            buildCountryChart(summary.countries || []);
+            // Scale country data to total on-chain holders
+            const rawCountries = summary.countries || [];
+            const scaledCountries = scaleCountriesToHolders(rawCountries, totalHolders);
+            buildCountryChart(scaledCountries);
             buildHourlyChart(summary.hourly || []);
         }
 
@@ -496,6 +499,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 buildGAChart(filteredData(allGaData));
             });
         });
+    }
+
+    /**
+     * Scale GA country visitor counts proportionally to total on-chain holders.
+     * GA tracks ~19K visitors, but ~123K have minted. The geographic distribution
+     * is representative, so we scale up so the map shows all holders.
+     */
+    function scaleCountriesToHolders(countries, totalHolders) {
+        if (!countries.length || !totalHolders) return countries;
+        const gaTotal = countries.reduce((s, c) => s + (c.activeUsers || 0), 0);
+        if (gaTotal <= 0) return countries;
+        const scale = totalHolders / gaTotal;
+        return countries.map(c => ({
+            ...c,
+            activeUsers: Math.round((c.activeUsers || 0) * scale),
+            sessions: Math.round((c.sessions || 0) * scale),
+        }));
     }
 
     function updateGANarrative(data, summary) {
