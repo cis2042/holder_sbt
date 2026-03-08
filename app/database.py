@@ -5,7 +5,6 @@ Collections: daily_stats, wallet_age_snapshots, sync_metadata
 
 import logging
 import os
-import subprocess
 from datetime import datetime
 from typing import Any
 
@@ -17,20 +16,14 @@ PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT", "gen-lang-client-0185671751")
 
 
 def _get_client():
-    """Get Firestore client, trying ADC first, then gcloud user creds."""
+    """Get Firestore client, trying ADC first, then user credentials."""
     try:
         return firestore.Client(project=PROJECT_ID)
     except Exception:
         # On Cloud Run this should never fail since SA creds are automatic.
-        # Locally, try using gcloud user credentials.
+        # Locally, use Application Default Credentials (run: gcloud auth application-default login)
         import google.auth
-        import google.auth.transport.requests
-        from google.oauth2 import credentials as oauth2_creds
-
-        token = subprocess.check_output(
-            ["gcloud", "auth", "print-access-token"], text=True
-        ).strip()
-        creds = oauth2_creds.Credentials(token=token)
+        creds, _ = google.auth.default()
         return firestore.Client(project=PROJECT_ID, credentials=creds)
 
 

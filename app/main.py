@@ -28,11 +28,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 
 app = FastAPI(title="BSC Token Growth Dashboard", version="1.0.0")
 
-# ── CORS (allow widget embedding from any origin) ────────────
+# ── CORS ─────────────────────────────────────────────────────
 from fastapi.middleware.cors import CORSMiddleware
+_allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+_allowed_origins = [o.strip() for o in _allowed_origins if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins if _allowed_origins else ["https://holders.twin3.ai", "https://twin3.ai"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )
@@ -42,7 +44,7 @@ DUNE_API_KEY = os.getenv("DUNE_API_KEY", "")
 TOKEN_CONTRACT = os.getenv("TOKEN_CONTRACT_ADDRESS", "0xe3ec133e29addfbba26a412c38ed5de37195156f")
 MINTER_ADDRESS = os.getenv("MINTER_ADDRESS", "0x344659F3Ef3c2D2A0cdF071ea13Fa87867777777")
 TIMEZONE = os.getenv("TIMEZONE", "UTC")
-SYNC_SECRET = os.getenv("SYNC_SECRET", "")  # Protect sync endpoints
+SYNC_SECRET = os.getenv("SYNC_SECRET")  # Required — protects sync endpoints
 SYNC_INTERVAL_HOURS = int(os.getenv("SYNC_INTERVAL_HOURS", "4"))
 SYNC_INTERVAL_SEC = SYNC_INTERVAL_HOURS * 3600
 
@@ -190,11 +192,12 @@ async def api_formulas():
 
 def _verify_sync_auth(request: Request):
     """Verify sync request is authorized."""
-    # Accept Cloud Scheduler OIDC tokens or secret header
-    if SYNC_SECRET:
-        auth = request.headers.get("X-Sync-Secret", "")
-        if auth != SYNC_SECRET:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+    import hmac
+    if not SYNC_SECRET:
+        raise HTTPException(status_code=503, detail="SYNC_SECRET not configured")
+    auth = request.headers.get("X-Sync-Secret", "")
+    if not hmac.compare_digest(auth, SYNC_SECRET):
+        raise HTTPException(status_code=403, detail="Unauthorized")
 
 
 @app.post("/api/sync/backfill")
